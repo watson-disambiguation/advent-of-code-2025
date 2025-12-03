@@ -2,6 +2,7 @@ use std::{fs, ops::RangeInclusive, path::Path};
 fn main() {
     day_one("./input_day_one.txt");
     day_two("./input_day_two.txt");
+    day_three("./input_day_three.txt");
 }
 
 fn day_one(path_string: &str) {
@@ -128,6 +129,40 @@ fn repeats_with_freq(string: &str, freq: usize) -> bool {
             None => return false
         }
     }
+}
+
+fn day_three(path_string: &str) {
+    println!("Day Two:");
+    let file_path = Path::new(path_string);
+    let input: String = fs::read_to_string(file_path).expect("Should have successfully read the file");
+    let mut total_joltage_part_one = 0;
+    for bank_string in input.lines() {
+        total_joltage_part_one += process_bank(bank_string);
+    }
+    println!("    Part One: {}",total_joltage_part_one);
+}
+
+fn process_bank(bank_string: &str) -> i32 {
+    // map to i32s
+    let mut bank: Vec<i32> = bank_string.as_bytes().iter().map(|c| (c.clone() - 48).into() ).collect();
+    let last = bank.pop().expect("bank should have at least one item");
+    let mut max = -1;
+    let mut max_pos = 0;
+    for (i,val) in bank.iter().cloned().enumerate() {
+        if val > max {
+            max = val;
+            max_pos = i;
+        }
+
+    }
+    bank.push(last);
+    let second = bank.iter()
+        .cloned()
+        .skip(max_pos + 1)
+        .max()
+        .expect("should be at least one element after this");
+    return max * 10 + second;
+
 }
 
 
