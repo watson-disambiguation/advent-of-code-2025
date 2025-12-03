@@ -1,4 +1,4 @@
-use std::{fs, ops::RangeInclusive, path::Path};
+use std::{fs, ops::RangeInclusive, path::Path, result};
 fn main() {
     day_one("./input_day_one.txt");
     day_two("./input_day_two.txt");
@@ -136,15 +136,19 @@ fn day_three(path_string: &str) {
     let file_path = Path::new(path_string);
     let input: String = fs::read_to_string(file_path).expect("Should have successfully read the file");
     let mut total_joltage_part_one = 0;
+    let mut total_joltage_part_two = 0;
     for bank_string in input.lines() {
-        total_joltage_part_one += process_bank(bank_string);
+        total_joltage_part_one += process_bank(bank_string, 2);
+        total_joltage_part_two += process_bank(bank_string,12);
     }
     println!("    Part One: {}",total_joltage_part_one);
+    println!("    Part Two: {}",total_joltage_part_two);
 }
 
-fn process_bank(bank_string: &str) -> i32 {
-    // map to i32s
-    let mut bank: Vec<i32> = bank_string.as_bytes().iter().map(|c| (c.clone() - 48).into() ).collect();
+// unused, used to figure out first problem, but has been replaced with more flexible solution
+fn process_bank_two_cells(bank_string: &str) -> i64 {
+    // map to i64s
+    let mut bank: Vec<i64> = bank_string.as_bytes().iter().map(|c| (c.clone() - 48).into() ).collect();
     let last = bank.pop().expect("bank should have at least one item");
     let mut max = -1;
     let mut max_pos = 0;
@@ -161,7 +165,48 @@ fn process_bank(bank_string: &str) -> i32 {
         .skip(max_pos + 1)
         .max()
         .expect("should be at least one element after this");
-    return max * 10 + second;
+    let result = max * 10 + second;
+    return result;
+}
+
+fn process_bank(bank_string: &str, n: usize) -> i64 {
+    // map to i64s
+    let mut bank: Vec<i64> = bank_string.as_bytes().iter().map(|c| (c.clone() - 48).into() ).collect();
+    // take the last n - 1 cells, as we want the max not in those
+    let mut last_cells: Vec<i64> = bank.split_off(bank.len() - n + 1).into_iter().rev().collect();
+    let mut cells_to_use: Vec<i64> = Vec::new();
+    // check that our assumptions hold
+    assert!(n - 1 == last_cells.len());
+    loop {
+        // find the value and position of the maximum cell that we can take
+        let mut max = -1;
+        let mut max_pos = 0;
+        for (i,val) in bank.iter().cloned().enumerate() {
+            if val > max {
+                max = val;
+                max_pos = i;
+            }
+        }
+        // we want to save the maximum cell we have found
+        cells_to_use.push(max);
+        // we know we are done when we have found all the digits we need
+        if cells_to_use.len() == n {
+            break;
+        }
+        // skip over the cells before and including the max cell, so now we just look at the bank after
+        // that point
+        bank = bank.into_iter().skip(max_pos + 1).collect();
+        // we want to add a cell which could now be included back from the last cells
+        bank.push(last_cells.pop().expect("Should still be cells remaining"));
+    }
+    // calculate by treating list as base 10 digits
+    let mut curr_digit = 1;
+    let mut result = 0;
+    while let Some(cell_value) = cells_to_use.pop() {
+        result += cell_value * curr_digit;
+        curr_digit *= 10;
+    }
+    return result;
 
 }
 
