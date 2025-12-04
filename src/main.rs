@@ -3,6 +3,7 @@ fn main() {
     day_one("./input_day_one.txt");
     day_two("./input_day_two.txt");
     day_three("./input_day_three.txt");
+    day_four("./input_day_four.txt");
 }
 
 fn day_one(path_string: &str) {
@@ -132,7 +133,7 @@ fn repeats_with_freq(string: &str, freq: usize) -> bool {
 }
 
 fn day_three(path_string: &str) {
-    println!("Day Two:");
+    println!("Day Three:");
     let file_path = Path::new(path_string);
     let input: String = fs::read_to_string(file_path).expect("Should have successfully read the file");
     let mut total_joltage_part_one = 0;
@@ -170,6 +171,7 @@ fn process_bank_two_cells(bank_string: &str) -> i64 {
 }
 
 fn process_bank(bank_string: &str, n: usize) -> i64 {
+    assert!(bank_string.len() >= n);
     // map to i64s
     let mut bank: Vec<i64> = bank_string.as_bytes().iter().map(|c| (c.clone() - 48).into() ).collect();
     // take the last n - 1 cells, as we want the max not in those
@@ -209,6 +211,134 @@ fn process_bank(bank_string: &str, n: usize) -> i64 {
     return result;
 
 }
+
+struct Grid {
+    width: usize,
+    height: usize,
+    list: Vec<bool>
+}
+
+impl Grid {
+    fn from_string(string: &str, empty_char: char, filled_char: char) -> Self  {
+        let mut width = 0;
+        let mut height = 0;
+        let mut list = Vec::new();
+        for line in string.lines() {
+            if width == 0 {
+                width = line.len();
+            }
+            height += 1;
+            for char in line.chars() {
+                if char == empty_char {
+                    list.push(false);
+                }
+                else if char == filled_char {
+                    list.push(true);
+                }
+                else {
+                    panic!("Should have only contained empty and filled chars")
+                }
+            }
+        }
+        return Self { width, height, list }
+    }
+
+    fn get(&self, x: usize, y: usize) -> Option<bool> {
+        if (x >= self.width) || (y >= self.height) {
+            return None;
+        }
+        self.list.get(x + y * self.width).cloned()
+    }
+
+    fn check_pos(&self, x: i64, y: i64) -> bool {
+        let x_constrained: usize = match x.try_into() {
+            Ok(val) => val,
+            Err(_) => return false,
+        };
+        let y_constrained: usize = match y.try_into() {
+            Ok(val) => val,
+            Err(_) => return false,
+        };
+        match self.get(x_constrained, y_constrained) {
+            Some(val) => val,
+            None => false
+        }
+    }
+
+    fn check_adj(&self, x: usize, y: usize) -> Option<usize> {
+        if let Some(loc_val) = self.get(x, y)  {
+            if loc_val == false {
+                return None;
+            } 
+        }
+        let x_cast: i64 = match x.try_into() {
+            Ok(val) => val,
+            Err(_) => return None,
+        };
+        let y_cast: i64 = match y.try_into() {
+            Ok(val) => val,
+            Err(_) => return None,
+        };
+        let mut count: usize = 0;
+        for x_offset in -1..=1 {
+            for y_offset in -1..=1 {
+                if x_offset == 0 && y_offset == 0 {
+                    continue;
+                }
+                if self.check_pos(x_cast + x_offset, y_cast + y_offset) {
+                    count += 1;
+                }
+            }
+        }
+        return Some(count);
+    }
+
+    fn count_accessible(&self,threshold: usize) -> Vec<(usize,usize)> {
+        let mut list = Vec::new();
+        for i in 0..self.width {
+            for j in 0..self.height {
+                if let Some(adj_count) = self.check_adj(i, j) {
+                    if adj_count < threshold {
+                        list.push((i,j));
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    fn set(&mut self, x: usize, y: usize, value: bool) {
+        if x >= self.width || y >= self.height {
+            return;
+        }
+        self.list[x + y * self.width] = value;
+    } 
+}
+
+fn day_four(path_string: &str) {
+    println!("Day Four:");
+    let file_path = Path::new(path_string);
+    let input: String = fs::read_to_string(file_path).expect("Should have successfully read the file");
+    let mut grid = Grid::from_string(&input, '.', '@');
+    let count_part_one = grid.count_accessible(4).len();
+    let mut count_part_two = 0;
+    loop {
+        let list = grid.count_accessible(4);
+        let iteration_count = list.len();
+        if iteration_count == 0 {
+            break;
+        }
+        for (i,j) in list.iter().cloned() {
+            grid.set(i, j, false);
+        }
+        count_part_two += iteration_count
+    }
+    println!("    Part One: {}",count_part_one);
+    println!("    Part Two: {}",count_part_two);
+
+}
+
+
 
 
 
